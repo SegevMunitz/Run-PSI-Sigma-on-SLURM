@@ -347,7 +347,7 @@ STAR Array (2)
   ├─→ Groups (3) ──→ PSI-Sigma (5) ──┐
   ├─→ featureCounts (4) ─────────────┤
   └─→ Salmon Array (6) ──────────────┤
-                                      ↓
+                                     ↓
                               Filter Results (7)
 ```
 
@@ -496,4 +496,5 @@ If missing, install Nextflow and re-run.
 
 **Pipeline Version:** 2.1 
 **Last Updated:** February 2025
+
 
