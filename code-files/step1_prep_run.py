@@ -120,7 +120,7 @@ def main() -> None:
     )
 
     print("Prep done.")
-    print("Next: submit STAR array using step1_star_align_core.py")
+    print("Next: submit STAR array using step2_star_align_core.py")
 
 if __name__ == "__main__":
     main()

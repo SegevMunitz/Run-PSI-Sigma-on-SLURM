@@ -212,4 +212,3 @@ PSISIGMA_ABSPSI_MIN: float = 20.0
 PSISIGMA_P_MAX: float = 0.05
 PSISIGMA_FDR_MAX: float = 0.05
 
-#!/usr/bin/env python3

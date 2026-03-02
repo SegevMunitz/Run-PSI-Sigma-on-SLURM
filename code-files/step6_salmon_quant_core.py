@@ -124,7 +124,8 @@ if __name__ == "__main__":
 
     sample_id = sample["id"]
     fq1 = str(sample["r1"])
-    fq2 = str(sample.get("r2")) if "r2" in sample else None
+    fq2_path = sample.get("r2")
+    fq2 = str(fq2_path) if fq2_path else None
 
     run_salmon(sample_id, fq1, fq2)
 
