@@ -10,7 +10,7 @@ and the output directory contains:
     <OUT_ROOT>/bam/<sample>/<sample>.Aligned.sortedByCoord.out.bam
 
 The script can either:
-  - auto-discover BAMs under <OUT_ROOT>/bam/*/*.Aligned.sortedByCoord.out.bam, or
+  - auto-discover BAMs under <OUT_ROOT>/star_alignments/bam/*/*.Aligned.sortedByCoord.out.bam, or
   - accept one or more BAMs explicitly via repeated --bam arguments.
 
 Outputs are written under:
@@ -118,10 +118,10 @@ def find_star_bams(out_root: Path) -> List[Path]:
     Discover STAR-sorted BAMs under the pipeline output directory.
 
     Searches for files matching:
-      <out_root>/bam/*/*.Aligned.sortedByCoord.out.bam
+      <out_root>/star_alignments/bam/*/*.Aligned.sortedByCoord.out.bam
     Returns a sorted list of Paths for reproducible ordering.
     """
-    bams = sorted(out_root.glob("bam/*/*.Aligned.sortedByCoord.out.bam"))
+    bams = sorted(out_root.glob("star_alignments/bam/*/*.Aligned.sortedByCoord.out.bam"))
     return [Path(b) for b in bams]
 
 def main() -> None:
@@ -143,7 +143,7 @@ def main() -> None:
         type=Path,
         action="append",
         default=None,
-        help="Optional: provide BAM(s) explicitly. If omitted, auto-discovers under out-root/bam/*/*.Aligned.sortedByCoord.out.bam",
+        help="Optional: provide BAM(s) explicitly. If omitted, auto-discovers under out-root/star_alignments/bam/*/*.Aligned.sortedByCoord.out.bam",
     )
     args = p.parse_args()
 
@@ -155,7 +155,7 @@ def main() -> None:
         raise SystemExit(
             f"ERROR: No BAMs found.\n"
             f"Either pass --bam multiple times, or ensure BAMs exist under:\n"
-            f"  {out_dir/'bam'}/*/*.Aligned.sortedByCoord.out.bam"
+            f"  {out_dir/'star_alignments'/'bam'}/*/*.Aligned.sortedByCoord.out.bam"
         )
 
     matrix = featurecounts_gene_counts(
