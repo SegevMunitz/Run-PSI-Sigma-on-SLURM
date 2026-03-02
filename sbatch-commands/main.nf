@@ -1,5 +1,17 @@
 nextflow.enable.dsl=2
 
+// Global environment setup for HUJI Cluster
+env.PATH = [
+    "/sci/labs/zvika.granot/segev.munitz/softwares/Nextflow",
+    "/sci/labs/zvika.granot/segev.munitz/softwares/STAR-2.7.11b/bin/Linux_x86_64",
+    "/sci/labs/zvika.granot/segev.munitz/softwares/Salmon/salmon-latest_linux_x86_64/bin",
+    "/sci/labs/zvika.granot/segev.munitz/softwares/PSI-Sigma-2.1",
+    "/sci/labs/zvika.granot/segev.munitz/softwares/perl5/bin",
+    '$PATH'
+].join(':')
+
+env.PERL5LIB = "/sci/labs/zvika.granot/segev.munitz/softwares/perl5/lib/perl5:\$PERL5LIB"
+
 params.project_dir = projectDir
 params.code_dir = "${params.project_dir}/code-files"
 params.python = 'python3'
