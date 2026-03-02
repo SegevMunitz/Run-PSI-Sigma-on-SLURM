@@ -492,5 +492,8 @@ If missing, install Nextflow and re-run.
 - Validate `groups.tsv` and `COMPARISONS` before expensive compute steps.
 - Inspect logs after each stage before launching downstream analysis.
 
-- **Pipeline Version:** 2.1 
-- **Last Updated:** February 2025
+---
+
+**Pipeline Version:** 2.1 
+**Last Updated:** February 2025
+
