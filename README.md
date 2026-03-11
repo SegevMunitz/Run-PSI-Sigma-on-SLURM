@@ -183,7 +183,7 @@ COMPARISONS = [
 Create a `groups.tsv` before Step 3.
 
 Current Step 3 code expects:
-- `<OUTDIR>/star_alignments/groups.tsv`
+- `<OUTDIR>/star_out/groups.tsv`
 
 Format (no header):
 ```tsv
@@ -363,7 +363,7 @@ STAR Array (2)
 │
 ├── samples.txt                                # list of sample IDs (Step 1)
 │
-├── star_alignments/
+├── star_out/
 │   ├── groups.tsv                             # sample->group mapping (user-provided for Step 3)
 │   ├── bam/                                   # STAR outputs (Step 2)
 │   │   └── <sample>/
@@ -384,22 +384,27 @@ STAR Array (2)
 │   ├── featureCounts.gene_counts.txt
 │   └── gene_counts.matrix.tsv
 │
-├── salmon/                                    # Step 6
-│   └── <sample>/
-│       ├── quant.sf
-│       ├── quant.genes.sf
-│       ├── cmd_info.json
-│       ├── lib_format_counts.json
-│       ├── logs/
-│       └── aux_info/
+├── salmon_out/                                # Step 6
+│   └── salmon/
+│       └── <sample>/
+│           ├── quant.sf
+│           ├── quant.genes.sf
+│           ├── cmd_info.json
+│           ├── lib_format_counts.json
+│           ├── logs/
+│           └── aux_info/
 │
-├── <comparison_name>/                         # Step 5 + Step 7 outputs
-│   ├── *.PSIsigma*.txt                        # unfiltered PSI-Sigma
-│   ├── *.salmon_tpm*.tsv                      # filtered
-│   └── *.salmon_tpm*.xlsx                     # filtered
+├── psi_sigma/                                 # Step 5 + Step 7 outputs
+│   ├── logs/
+│   ├── tmp/
+│   ├── H_vs_N1/
+│   │   ├── *.PSIsigma*.txt
+│   │   ├── *.salmon_tpm*.tsv
+│   │   └── *.salmon_tpm*.xlsx
+│   ├── H_vs_N2/
+│   └── N1_vs_N2/
 │
-├── logs/
-└── tmp/
+└── logs/                                      # general run logs
 ```
 
 ---
@@ -456,7 +461,7 @@ If missing, install Nextflow and re-run.
 - Ensure sample IDs match `samples.txt` IDs.
 
 ### featureCounts reports no BAMs
-- Auto-discovery path: `OUTDIR/star_alignments/bam/*/*.Aligned.sortedByCoord.out.bam`
+- Auto-discovery path: `OUTDIR/star_out/bam/*/*.Aligned.sortedByCoord.out.bam`
 - Confirm Step 2 completed and path is correct.
 
 ### PSI-Sigma Perl/module errors
@@ -464,9 +469,9 @@ If missing, install Nextflow and re-run.
 - Check required Perl modules (e.g., `PDL`, `Statistics::R`).
 
 ### Salmon quant/index issues
-- Validate `SALMON_BIN` path.
-- Verify index directory content (`info.json`, `ctable.bin`).
-- Waiting behavior for index build in arrays is expected.
+- Validate SALMON_BIN directory and SALMON_EXE path.
+- Verify index directory content (info.json, ctable.bin).
+- Waiting behavior for index build in parallel tasks is expected.
 
 ### Empty Step 7 filtered results
 - Consider lowering `SALMON_TPM_THRESHOLD`.

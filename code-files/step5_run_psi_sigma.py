@@ -19,7 +19,7 @@ The script performs four key roles:
      pipeline output/log directories exist, and removes PSI-Sigma output folders
      if they already exist (PSI-Sigma commonly fails when outputs pre-exist).
   4) Batch execution: runs one or more comparisons defined in paths.COMPARISONS,
-     each producing a separate output directory under paths.OUTDIR/<comparison>.
+     each producing a separate output directory under paths.OUTDIR/psi_sigma/<comparison>.
 
 Configuration is controlled entirely via paths.py:
   - ANNOTATION_GTF: reference annotation used by PSI-Sigma
