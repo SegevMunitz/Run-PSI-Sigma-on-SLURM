@@ -36,6 +36,9 @@ to any alignment jobs and reused across multiple samples and Slurm array runs.
 
 
 from __future__ import annotations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pathlib import Path
 import argparse

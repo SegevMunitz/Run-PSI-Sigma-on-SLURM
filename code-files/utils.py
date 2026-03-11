@@ -15,9 +15,10 @@ be imported safely in both interactive runs and SLURM batch jobs.
 """
 
 from __future__ import annotations
+from pathlib import Path
+
 import shutil
 import subprocess
-from pathlib import Path
 from typing import List, Optional
 
 def ensure_dir(p: Path) -> None:

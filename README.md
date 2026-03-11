@@ -111,15 +111,21 @@ nextflow -version
 
 ## Configuration in `paths.py`
 
-Single source of configuration:
+`code-files/paths.py` is the **single source of truth for path resolution**, but it is **env-first**:
+- Prefer configuring via environment variables (recommended)
+- `paths.py` provides sane defaults and validations
 
-- `code-files/paths.py`
+### Recommended: configure via `configs/site.env`
+You typically **do not edit Python files** for a new run. Instead, set environment variables in:
 
-### Primary fields to edit
+- `configs/site.env` (cluster/tool/reference paths; stable across runs)
+
+### Primary variables to set (env-first)
+
 - **Run naming/paths**
-  - `NAME`
-  - `OUTDIR`
-  - `FASTQ_DIR`
+  - `RUN_NAME` (or `NAME`)
+  - `OUTDIR` (base output root; `paths.py` appends `RUN_NAME` if needed)
+  - `FASTQ_DIR` (defaults to `${OUTDIR}/gz_files`)
 - **Reference selection**
   - `KIND` (`Human` / `Mouse`)
   - `VERSION`
@@ -127,20 +133,17 @@ Single source of configuration:
 - **Tool locations**
   - `PERLBASE`
   - `PSI_SIGMA`
-  - `SALMON_BIN`
+  - `SALMON_BIN` (directory or full path depending on your scripts; keep consistent)
 - **Roots for references/indexes**
   - `REFERENCES_ROOT`
   - `STAR_INDEX_ROOT`
   - `SALMON_INDEX_ROOT`
-- **PSI-Sigma comparisons**
-  - `COMPARISONS`
-  - related group files
 - **Filtering thresholds**
   - `SALMON_TPM_THRESHOLD`
   - `SALMON_FILTER_MODE`
   - `PSISIGMA_ABSPSI_MIN`, `PSISIGMA_P_MAX`, `PSISIGMA_FDR_MAX`
 
-### FASTQ naming conventions
+### FASTQ naming conventions (env overridable)
 Defaults:
 ```python
 R1_SUFFIX = "_1.fastq.gz"

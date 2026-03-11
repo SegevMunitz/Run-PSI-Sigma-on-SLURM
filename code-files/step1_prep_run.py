@@ -73,6 +73,9 @@ across samples using SLURM arrays.
 """
 
 from __future__ import annotations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from paths import (OUTDIR, SAMPLES, STAR_INDEX_DIR, GENOME_FASTA,
                    ANNOTATION_GTF, THREADS, READ_LENGTH, REF_BUNDLE_DIR,

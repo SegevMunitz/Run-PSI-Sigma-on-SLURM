@@ -43,6 +43,9 @@ Run as a single SLURM job after alignment + group file generation, e.g.:
 """
 
 from __future__ import annotations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import os
 import shutil

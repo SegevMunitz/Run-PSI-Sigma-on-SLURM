@@ -7,6 +7,12 @@ This script processes PSI-Sigma output files for multiple comparisons,
 adding mean TPM values for each group and filtering events based on expression
 thresholds and statistical criteria.
 """
+
+from __future__ import annotations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import pandas as pd
 import re
 from pathlib import Path

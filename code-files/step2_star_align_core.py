@@ -32,6 +32,9 @@ activation should happen in the sbatch script). It performs basic validation
 (FASTQ existence; BAM creation) and fails fast if required inputs/outputs are missing.
 """
 from __future__ import annotations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pathlib import Path
 import argparse

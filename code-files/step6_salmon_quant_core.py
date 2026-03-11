@@ -7,6 +7,11 @@ This script is intended to be run as part of a SLURM array job, where each
 task quantifies one sample.
 """
 
+from __future__ import annotations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import subprocess
 import time
 from pathlib import Path

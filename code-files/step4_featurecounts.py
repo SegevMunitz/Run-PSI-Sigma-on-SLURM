@@ -30,9 +30,12 @@ Requirements
 """
 
 from __future__ import annotations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import argparse
 import csv
-from pathlib import Path
 from typing import List
 from paths import (OUTDIR, ANNOTATION_GTF)
 from utils import ensure_dir, run, which_or_die
