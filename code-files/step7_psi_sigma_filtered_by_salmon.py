@@ -47,7 +47,7 @@ def load_salmon_tpms(sample_ids):
     """Load Salmon TPM values for multiple samples."""
     dfs = []
     for sid in sample_ids:
-        qsf = OUTDIR / "salmon" / sid / "quant.sf"
+        qsf = OUTDIR / "salmon_out" / "salmon" / sid / "quant.sf"
         if not qsf.exists():
             raise FileNotFoundError(
                 f"Salmon quantification file not found for sample '{sid}'. "
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     print()
 
     for comp in COMPARISONS:
-        comp_dir = OUTDIR / comp.name
+        comp_dir = OUTDIR / "psi_sigma" / comp.name
         if not comp_dir.exists():
             print(f"WARNING: Comparison directory not found: {comp_dir}, skipping {comp.name}.")
             continue
@@ -95,16 +95,16 @@ if __name__ == "__main__":
         print(f"Processing: {comp.name}")
 
         # Find PSI-Sigma output file
-        psisigma_files = list(comp_dir.rglob("*.PSIsigma*.txt"))
-        if not psisigma_files:
+        psisigma_files = list(comp_dir.glob("*.PSIsigma*.txt"))
+        if len(psisigma_files) == 0:
             print(f"  ERROR: No PSI-Sigma output files found in {comp_dir}")
-            print(f"  Expected pattern: PSIsigma*.txt")
             continue
-
         if len(psisigma_files) > 1:
-            print(f"  Warning: Multiple PSI-Sigma files found, using: {psisigma_files[0].name}")
-        
-        psisigma_file = max(psisigma_files, key=lambda p: p.stat().st_mtime)
+            raise RuntimeError(
+                f"Multiple PSI-Sigma result files found in {comp_dir}. "
+                f"Refine pattern. Found: {[p.name for p in psisigma_files]}"
+            )
+        psisigma_file = psisigma_files[0]
         print(f"  Reading: {psisigma_file.name}")
         
         # Load PSI-Sigma results

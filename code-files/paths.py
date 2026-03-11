@@ -29,7 +29,7 @@ def env_path(name: str, default: str | Path) -> Path:
 # ----------------- Tool & root configuration (env-first) -----------------
 PERLBASE = env_path("PERLBASE", "/sci/labs/zvika.granot/segev.munitz/softwares/perl5")
 PSI_SIGMA = env_path("PSI_SIGMA", "/sci/labs/zvika.granot/segev.munitz/softwares/PSI-Sigma-2.1/dummyai.pl")
-SALMON_BIN = env_path("SALMON_BIN", "/sci/labs/zvika.granot/segev.munitz/softwares/Salmon/salmon-latest_linux_x86_64/bin/salmon")
+SALMON_EXE = env_path("SALMON_EXE", "/sci/labs/zvika.granot/segev.munitz/softwares/Salmon/salmon-latest_linux_x86_64/bin/salmon")
 
 # Reference / index roots
 REFERENCES_ROOT = env_path("REFERENCES_ROOT", "/sci/labs/zvika.granot/segev.munitz/references")
@@ -151,7 +151,7 @@ PSISIGMA_P_MAX = float(os.environ.get("PSISIGMA_P_MAX", "0.05"))
 PSISIGMA_FDR_MAX = float(os.environ.get("PSISIGMA_FDR_MAX", "0.05"))
 
 # Default group file paths (these will be created by step3)
-GROUP_DIR = OUTDIR / "groups"
+GROUP_DIR = OUTDIR / "star_out" / "groups"
 GROUP_HEALTHY = GROUP_DIR / "H.bams.txt"
 GROUP_SICK_1 = GROUP_DIR / "N1.bams.txt"
 GROUP_SICK_2 = GROUP_DIR / "N2.bams.txt"

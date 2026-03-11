@@ -8,7 +8,7 @@ What this script does
 ---------------------
 Given:
   1) an output root directory (OUTDIR) that contains STAR outputs in:
-       <OUTDIR>/bam/<sample>/<sample>.Aligned.sortedByCoord.out.bam
+       <OUTDIR>/star_out/bam/<sample>/<sample>.Aligned.sortedByCoord.out.bam
   2) a samples file:
        <OUTDIR>/samples.txt
      containing one sample ID per line (the same IDs used in paths.SAMPLES / step1 prep)
@@ -18,7 +18,7 @@ Given:
        <sample_id>    <group_name>
 
 This script writes, for each group_name, a file:
-  <OUTDIR>/groups/<group_name>.bams.txt
+  <OUTDIR>/star_out/groups/<group_name>.bams.txt
 
 Each output file contains absolute BAM file paths, one per line. These files can be
 passed directly to PSI-Sigma as group inputs (e.g., --groupa /path/to/Healthy.bams.txt).
@@ -40,7 +40,6 @@ Exit conditions / validation
 from __future__ import annotations
 
 from pathlib import Path
-import argparse
 import sys
 from paths import OUTDIR
 
@@ -59,15 +58,19 @@ def main() -> None:
     Create group-specific BAM list files from sample-to-group mappings.
 
     Reads sample IDs and group assignments, validates BAM existence, and
-    writes one BAM list file per group under <OUTDIR>/groups for downstream
+    writes one BAM list file per group under <OUTDIR>/star_out/groups for downstream
     PSI-Sigma analysis.
     """
 
-    out_dir = OUTDIR / "star_alignments"
+    out_dir = OUTDIR / "star_out"
     samples_txt = OUTDIR / "samples.txt" 
     groups_tsv = out_dir / "groups.tsv"
     groups_dir = out_dir / "groups"
     groups_dir.mkdir(parents=True, exist_ok=True)
+    if not groups_tsv.is_file():
+        raise SystemExit(f"ERROR: groups.tsv not found: {groups_tsv}")
+    if not samples_txt.is_file():
+        raise SystemExit(f"ERROR: samples.txt not found: {samples_txt}")
 
     # read samples
     samples = [ln.strip() for ln in samples_txt.read_text().splitlines() if ln.strip()]

@@ -12,11 +12,12 @@ import time
 from pathlib import Path
 import os
 import sys
+import argparse
 
 from paths import (
     SAMPLES,
     OUTDIR,
-    SALMON_BIN,
+    SALMON_EXE,
     SALMON_INDEX_DIR,
     SALMON_LIBTYPE,
     SALMON_EXTRA_ARGS,
@@ -37,7 +38,7 @@ def salmon_index_exists(index_dir: Path) -> bool:
     return (index_dir / "info.json").exists() and (index_dir / "ctable.bin").exists()
 
 
-def ensure_salmon_index():
+def ensure_salmon_index(task_id: int):
     """
     Build Salmon index if missing.
     
@@ -49,8 +50,6 @@ def ensure_salmon_index():
     """
     if salmon_index_exists(SALMON_INDEX_DIR):
         return
-
-    task_id = int(os.environ.get("SLURM_ARRAY_TASK_ID", "1"))
 
     if task_id == 1:
         print("Salmon index not found - building now")
@@ -87,11 +86,11 @@ def run_salmon(sample_id, fastq1, fastq2=None):
         fastq1: Path to R1 FASTQ file (or single-end FASTQ)
         fastq2: Path to R2 FASTQ file (None for single-end)
     """
-    outdir = OUTDIR / "salmon" / sample_id
+    outdir = OUTDIR / "salmon_out" / "salmon" / sample_id
     outdir.mkdir(parents=True, exist_ok=True)
 
     cmd = [
-        SALMON_BIN, "quant",
+        SALMON_EXE, "quant",
         "-i", str(SALMON_INDEX_DIR),
         "-l", SALMON_LIBTYPE,
         "-o", str(outdir),
@@ -113,14 +112,34 @@ def run_salmon(sample_id, fastq1, fastq2=None):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run Salmon quant for a single sample (task-based).")
+    parser.add_argument(
+        "--task-id",
+        type=int,
+        default=None,
+        help="1-based task id (equivalent to SLURM_ARRAY_TASK_ID). If omitted, uses SLURM_ARRAY_TASK_ID.",
+    )
+    args = parser.parse_args()
+
+    # Determine 1-based task id
+    if args.task_id is not None:
+        task_id_1based = args.task_id
+    else:
+        if "SLURM_ARRAY_TASK_ID" not in os.environ:
+            raise SystemExit(
+                "ERROR: No --task-id provided and SLURM_ARRAY_TASK_ID is not set. "
+                "Provide --task-id N (1-based)."
+            )
+        task_id_1based = int(os.environ["SLURM_ARRAY_TASK_ID"])
 
     # Ensure index exists before any quantification
-    ensure_salmon_index()
+    ensure_salmon_index(task_id_1based)
 
-    task_id = int(os.environ["SLURM_ARRAY_TASK_ID"]) - 1
-    if task_id >= len(SAMPLES):
-        raise SystemExit(f"ERROR: SLURM_ARRAY_TASK_ID={task_id+1} exceeds number of samples ({len(SAMPLES)})")
-    sample = SAMPLES[task_id]
+    # Convert to 0-based index into SAMPLES
+    idx = task_id_1based - 1
+    if idx < 0 or idx >= len(SAMPLES):
+        raise SystemExit(f"ERROR: task-id={task_id_1based} out of range for number of samples ({len(SAMPLES)})")
+    sample = SAMPLES[idx]
 
     sample_id = sample["id"]
     fq1 = str(sample["r1"])

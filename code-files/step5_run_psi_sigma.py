@@ -115,6 +115,9 @@ def main() -> None:
     # Threads: prefer SLURM, fallback to 4
     n_threads = os.environ.get("SLURM_CPUS_PER_TASK", "4")
     job_id = os.environ.get("SLURM_JOB_ID", "local")
+    psi_root = paths.OUTDIR / "psi_sigma"
+    psi_logs = psi_root / "logs"
+    psi_tmp_root = psi_root / "tmp"
 
     print(f"=== job_id={job_id} host={socket.gethostname()} ===")
     print(f"Threads: {n_threads}")
@@ -133,28 +136,28 @@ def main() -> None:
     env = build_env(paths.PERLBASE)
 
     # TMPDIR: avoid shared /tmp collisions
-    tmpdir = Path(env.get("TMPDIR", str(paths.OUTDIR / "tmp" / f"run_{job_id}")))
+    tmpdir = Path(env.get("TMPDIR", str(psi_tmp_root / f"run_{job_id}")))
     ensure_dir(tmpdir)
     env["TMPDIR"] = str(tmpdir)
 
     # Output dirs
-    ensure_dir(paths.OUTDIR)
-    ensure_dir(paths.OUTDIR / "logs")
+    ensure_dir(psi_root)
+    ensure_dir(psi_logs)
 
     # PSI-Sigma fails if output directories already exist
     for comp in paths.COMPARISONS:
-        remove_if_exists(paths.OUTDIR / comp.name)
+        remove_if_exists(psi_root/ comp.name)
 
     print("PSI-Sigma script:", paths.PSI_SIGMA)
     print("GTF:", paths.ANNOTATION_GTF)
-    print("OUT_DIR:", paths.OUTDIR)
+    print("OUT_DIR:", psi_root)
     print("TMPDIR:", tmpdir)
 
     # Run comparisons
     for comp in paths.COMPARISONS:
         print(f"\n=== Running PSI-Sigma: {comp.name} ===")
 
-        out = paths.OUTDIR / comp.name
+        out = psi_root / comp.name
         cmd = [
             "perl", str(paths.PSI_SIGMA),
             "--gtf", str(paths.ANNOTATION_GTF),

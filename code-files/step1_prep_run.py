@@ -76,7 +76,7 @@ from __future__ import annotations
 
 from paths import (OUTDIR, SAMPLES, STAR_INDEX_DIR, GENOME_FASTA,
                    ANNOTATION_GTF, THREADS, READ_LENGTH, REF_BUNDLE_DIR,
-                   GENOME_URL, ANNOTATION_URL, SALMON_INDEX_DIR, SALMON_BIN,
+                   GENOME_URL, ANNOTATION_URL, SALMON_INDEX_DIR, SALMON_EXE,
                    TRANSCRIPTS_URL, SALMON_TRANSCRIPTS_FASTA)
 from utils import ensure_dir, write_text
 from helper_step0_build_star_index import build_star_index

@@ -118,7 +118,7 @@ def main() -> None:
 
     # Core IO
     genome_dir: Path = STAR_INDEX_DIR
-    out_dir: Path = OUTDIR / "star_alignments"
+    out_dir: Path = OUTDIR / "star_out"
     samples: Path = OUTDIR / "samples.txt"
 
     # Sample/task selection
@@ -152,8 +152,8 @@ def main() -> None:
     # Resolve threads
     threads = args.threads
     if threads is None:
-        threads = int(os.environ.get("SLURM_CPUS_PER_TASK", "4"))
-
+        threads = int(os.environ.get("SLURM_CPUS_PER_TASK", os.environ.get("THREADS", "4")))
+    
     logs_dir = out_dir / "logs"
     bam_root = out_dir / "bam"
     tmp_base = out_dir / "tmp"
@@ -164,9 +164,8 @@ def main() -> None:
 
     # Logging banner (imitate bash)
     job_id = os.environ.get("SLURM_JOB_ID", "NOJOB")
-    array_id = os.environ.get("SLURM_ARRAY_TASK_ID", str(task_id))
     host = socket.gethostname()
-    print(f"=== job={job_id} task={array_id} host={host} ===")    
+    print(f"=== job={job_id} task={task_id} host={host} ===")    
     print(f"STAR={star_cmd}")
     print(f"IDX={genome_dir}")
     print(f"OUT={out_dir}")

@@ -4,21 +4,18 @@ process PREP {
     tag 'prep'
     output:
     path 'sample_tasks.tsv', emit: sample_tasks
-    path 'prep.done', emit: done
+    path "${params.outdir}/.done/prep.done", emit: done
 
     script:
     """
     set -euo pipefail
     ${params.python} ${params.code_dir}/step1_prep_run.py
 
-    OUTDIR="\$(${params.python} - <<'PY'
-from paths import OUTDIR
-print(OUTDIR)
-PY
-)"
+    OUTDIR="${params.outdir}"
     SAMPLES_FILE="\${OUTDIR}/samples.txt"
     awk 'NF{print NR"\t"\$0}' "\${SAMPLES_FILE}" > sample_tasks.tsv
-    touch prep.done
+    mkdir -p "\${OUTDIR}/.done"
+    touch "\${OUTDIR}/.done/prep.done"
     """
 }
 
@@ -29,7 +26,7 @@ process STAR_ALIGN {
 
     script:
     """
-    export SLURM_ARRAY_TASK_ID=${task_id}
+    set -euo pipefail
     ${params.python} ${params.code_dir}/step2_star_align_core.py --task-id ${task_id}
     touch star.${task_id}.done
     """
@@ -80,8 +77,8 @@ process SALMON_QUANT {
 
     script:
     """
-    export SLURM_ARRAY_TASK_ID=${task_id}
-    ${params.python} ${params.code_dir}/step6_salmon_quant_core.py
+    set -euo pipefail
+    ${params.python} ${params.code_dir}/step6_salmon_quant_core.py --task-id ${task_id}
     touch salmon.${task_id}.done
     """
 }
