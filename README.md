@@ -63,6 +63,7 @@ Use when you want:
 Key files:
 - `main.nf`
 - `nextflow.config`
+- 'site.env'
 
 ### 2) SLURM script mode
 
