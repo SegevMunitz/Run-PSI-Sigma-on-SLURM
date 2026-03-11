@@ -11,7 +11,7 @@ Comprehensive pipeline for bulk RNA-seq processing with:
 This repository supports **two orchestration modes**:
 
 1. **Nextflow-first (recommended):** `main.nf` + `nextflow.config`
-2. **Native SLURM mode:** `sbatch-commands/*.slurm` + `submit_all.sh`
+2. **Native SLURM mode:** `configs/*.slurm` + `submit_all.sh`
 
 The Python scripts in `code-files/` are the core implementation and remain the source of truth for workflow behavior.
 
@@ -72,8 +72,8 @@ Use when you want:
 - compatibility with existing team habits
 
 Key files:
-- `sbatch-commands/sbatch_01_prep.slurm` ... `sbatch_07_salmon_filter.slurm`
-- `sbatch-commands/submit_all.sh`
+- `configs/sbatch_01_prep.slurm` ... `sbatch_07_salmon_filter.slurm`
+- `configs/submit_all.sh`
 
 ---
 
@@ -496,5 +496,6 @@ If missing, install Nextflow and re-run.
 
 **Pipeline Version:** 2.1 
 **Last Updated:** February 2025
+
 
 
