@@ -47,9 +47,29 @@ class Comparison:
     groupb: Path
 
 # ----------------- Run-specific (edit via env or configs/site.env) -----------------
+# IMPORTANT:
+# - If OUTDIR is provided, it is treated as the FULL run directory (recommended),
+#   e.g. OUTDIR=/sci/labs/.../psi_sigma_outputs/run_1
+# - If OUTDIR is NOT provided, we fall back to OUTROOT + NAME.
 NAME = os.environ.get("RUN_NAME", os.environ.get("NAME", "run_1"))
-OUTDIR = Path(os.environ.get("OUTDIR", "/sci/labs/zvika.granot/segev.munitz/psi_sigma_outputs")) / NAME
+
+OUTDIR_ENV = os.environ.get("OUTDIR", "")
+if OUTDIR_ENV:
+    OUTDIR = Path(OUTDIR_ENV)
+else:
+    OUTROOT = Path(os.environ.get("OUTROOT", "/sci/labs/zvika.granot/segev.munitz/psi_sigma_outputs"))
+    OUTDIR = OUTROOT / NAME
+
 FASTQ_DIR = Path(os.environ.get("FASTQ_DIR", str(OUTDIR / "gz_files")))
+
+# Optional: sanity guard against accidental OUTDIR/name duplication
+if OUTDIR.name == NAME and OUTDIR.parent.name == NAME:
+    raise SystemExit(
+        f"ERROR: OUTDIR looks like it contains NAME twice: {OUTDIR}\n"
+        f"Fix by setting OUTDIR to the full run directory (…/psi_sigma_outputs/{NAME}) "
+        f"or unset OUTDIR and set OUTROOT instead."
+    )
+
 
 KIND = os.environ.get("KIND", "Mouse")        # "Human" or "Mouse"
 VERSION = os.environ.get("VERSION", "M38")    # e.g. "M38" or "v45"
@@ -131,9 +151,10 @@ PSISIGMA_P_MAX = float(os.environ.get("PSISIGMA_P_MAX", "0.05"))
 PSISIGMA_FDR_MAX = float(os.environ.get("PSISIGMA_FDR_MAX", "0.05"))
 
 # Default group file paths (these will be created by step3)
-GROUP_HEALTHY = OUTDIR / "groups" / "H.bams.txt"
-GROUP_SICK_1 = OUTDIR / "groups" / "N1.bams.txt"
-GROUP_SICK_2 = OUTDIR / "groups" / "N2.bams.txt"
+GROUP_DIR = OUTDIR / "groups"
+GROUP_HEALTHY = GROUP_DIR / "H.bams.txt"
+GROUP_SICK_1 = GROUP_DIR / "N1.bams.txt"
+GROUP_SICK_2 = GROUP_DIR / "N2.bams.txt"
 
 COMPARISONS = [
     Comparison("H_vs_N1", GROUP_HEALTHY, GROUP_SICK_1),
