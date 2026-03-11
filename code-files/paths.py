@@ -1,214 +1,142 @@
 #!/usr/bin/env python3
 """
-paths.py
+code_files.paths — Central configuration and sample discovery for the RNA-seq pipeline.
 
-Central configuration and sample discovery for the RNA-seq SLURM pipeline.
+Design:
+ - Read site values from environment variables (preferred).
+ - Provide sensible defaults that mirror the previous hard-coded values.
+ - Provide clear error messages when required folders/files are missing.
+ - Expose the same names that existing scripts expect.
 
-This module acts as the single source of truth for paths, resources, and run
-settings used across all pipeline steps (prep, STAR alignment, featureCounts,
-and PSI-Sigma). Scripts import values from here to avoid duplicating hardcoded
-paths in multiple places.
-
-Key responsibilities:
-  1) Define reference resources (GENOME_FASTA, ANNOTATION_GTF, STAR_INDEX_DIR).
-  2) Define run outputs (OUTDIR) and raw data location (FASTQ_DIR).
-  3) Discover samples automatically by scanning FASTQ_DIR and building SAMPLES,
-     a list of dicts containing {"id", "r1", "r2"} for downstream steps.
-  4) Define optional tool configuration (Perl base, PSI-Sigma script path),
-     and group files/comparisons used by PSI-Sigma.
-
-Most users should only edit the variables under the "EDIT THESE PATHS" section.
-The remainder of the file is derived configuration used by the pipeline.
+Usage:
+  from code_files import paths
+  print(paths.OUTDIR, len(paths.SAMPLES))
 """
 
 from __future__ import annotations
+import os
 from pathlib import Path
-
 from dataclasses import dataclass
+from typing import List
 
-# ----------------- Helpers -----------------
+# ----------------- small helper -----------------
+def env_path(name: str, default: str | Path) -> Path:
+    v = os.environ.get(name)
+    if v:
+        return Path(v)
+    return Path(default)
 
-# Local Perl tree (only needed if PSI-Sigma depends on user-local Perl modules like PDL, Statistics::R, etc.)
-PERLBASE = Path("/sci/labs/zvika.granot/segev.munitz/softwares/perl5")
-# PSI-Sigma executable (dummyai.pl)
-PSI_SIGMA = Path("/sci/labs/zvika.granot/segev.munitz/softwares/PSI-Sigma-2.1/dummyai.pl")
-# Salmon executable
-SALMON_BIN = Path("/sci/labs/zvika.granot/segev.munitz/softwares/Salmon/salmon-latest_linux_x86_64/bin/salmon")
+# ----------------- Tool & root configuration (env-first) -----------------
+PERLBASE = env_path("PERLBASE", "/sci/labs/zvika.granot/segev.munitz/softwares/perl5")
+PSI_SIGMA = env_path("PSI_SIGMA", "/sci/labs/zvika.granot/segev.munitz/softwares/PSI-Sigma-2.1/dummyai.pl")
+SALMON_BIN = env_path("SALMON_BIN", "/sci/labs/zvika.granot/segev.munitz/softwares/Salmon/salmon-latest_linux_x86_64/bin/salmon")
 
-# Probably do not need to edit roots
-REFERENCES_ROOT = Path("/sci/labs/zvika.granot/segev.munitz/references")
-STAR_INDEX_ROOT  = Path("/sci/labs/zvika.granot/segev.munitz/star_indexes")
-SALMON_INDEX_ROOT = Path("/sci/labs/zvika.granot/segev.munitz/salmon_indexes")
+# Reference / index roots
+REFERENCES_ROOT = env_path("REFERENCES_ROOT", "/sci/labs/zvika.granot/segev.munitz/references")
+STAR_INDEX_ROOT = env_path("STAR_INDEX_ROOT", "/sci/labs/zvika.granot/segev.munitz/star_indexes")
+SALMON_INDEX_ROOT = env_path("SALMON_INDEX_ROOT", "/sci/labs/zvika.granot/segev.munitz/salmon_indexes")
 
-R1_SUFFIX = "_1.fastq.gz"
-R2_SUFFIX = "_2.fastq.gz"
+# FASTQ suffixes (defaults)
+R1_SUFFIX = os.environ.get("R1_SUFFIX", "_1.fastq.gz")
+R2_SUFFIX = os.environ.get("R2_SUFFIX", "_2.fastq.gz")
 
 @dataclass(frozen=True)
 class Comparison:
-    """
-    Describe a single PSI-Sigma comparison to run.
-
-    Each comparison has a human-readable name and two group list files.
-    groupa and groupb should be text files containing one absolute BAM path
-    per line (created after STAR alignment).
-    """
     name: str
     groupa: Path
     groupb: Path
 
-def build_samples_from_fastq_dir(fastq_dir: Path,
-                                 r1_suffix: str = R1_SUFFIX,
-                                 r2_suffix: str = R2_SUFFIX,
-                                 require_paired: bool = True) -> list[dict]:
-    """
-    Auto-generate SAMPLES by scanning a FASTQ directory for R1/R2 pairs.
+# ----------------- Run-specific (edit via env or configs/site.env) -----------------
+NAME = os.environ.get("RUN_NAME", os.environ.get("NAME", "run_1"))
+OUTDIR = Path(os.environ.get("OUTDIR", "/sci/labs/zvika.granot/segev.munitz/psi_sigma_outputs")) / NAME
+FASTQ_DIR = Path(os.environ.get("FASTQ_DIR", str(OUTDIR / "gz_files")))
 
-    Finds files matching '*<r1_suffix>' and uses the filename prefix as sample ID.
-    If require_paired=True, only complete R1/R2 pairs are included; otherwise
-    single-end samples are allowed (r2 omitted when absent).
-    """
-    fastq_dir = Path(fastq_dir)
-    if not fastq_dir.is_dir():
-        raise SystemExit(f"ERROR: FASTQ_DIR does not exist or is not a directory: {fastq_dir}")
+KIND = os.environ.get("KIND", "Mouse")        # "Human" or "Mouse"
+VERSION = os.environ.get("VERSION", "M38")    # e.g. "M38" or "v45"
+READ_LENGTH = int(os.environ.get("READ_LENGTH", "100"))
+sjdbOverhang = max(READ_LENGTH - 1, 1)
 
-    samples: list[dict] = []
+# Derived genome prefix (used in FASTA filename patterns)
+GENOME_PRE_FIX = "GRCh38" if KIND == "Human" else "GRCm39"
 
-    # Find all R1 files and infer sample IDs
-    r1_files = sorted(fastq_dir.glob(f"*{r1_suffix}"))
-    if not r1_files:
-        raise SystemExit(
-            f"ERROR: No R1 files found in {fastq_dir} matching pattern '*{r1_suffix}'. "
-            f"Check FASTQ_DIR and suffix."
-        )
-
-    for r1 in r1_files:
-        sample_id = r1.name[: -len(r1_suffix)]
-        r2 = fastq_dir / f"{sample_id}{r2_suffix}"
-
-        if require_paired:
-            if not r2.exists():
-                # skip incomplete pairs
-                continue
-            samples.append({"id": sample_id, "r1": r1, "r2": r2})
-        else:
-            entry = {"id": sample_id, "r1": r1}
-            if r2.exists():
-                entry["r2"] = r2
-            samples.append(entry)
-
-    if require_paired and not samples:
-        raise SystemExit(
-            f"ERROR: Found R1 files but no complete R1/R2 pairs using "
-            f"suffixes r1='{r1_suffix}', r2='{r2_suffix}' in {fastq_dir}."
-        )
-
-    # Stable ordering
-    samples.sort(key=lambda d: d["id"])
-    return samples
-
-#######################################
-# --------- EDIT THESE PATHS ----------
-#######################################
-
-# Unique name for this pipeline run
-NAME = "run_1"
-
-# Pipeline output root
-OUTDIR = Path("/sci/labs/zvika.granot/segev.munitz/psi_sigma_outputs") / NAME
-
-# fill FASTQ input dir
-FASTQ_DIR = OUTDIR / "gz_files"
-
-# STAR index output dir, Choose Human/Mouse and version as needed
-KIND = "Mouse"              # Human or Mouse
-VERSION = "M38"             # GENCODE version, e.g. v45 for human, vM31 for mouse
-READ_LENGTH = 100           # needed for STAR sjdbOverhang = READ_LENGTH-1
-
-# -------------- DO NOT EDIT -----------------
-GENOME_PRE_FIX = "GRCh38" if KIND == "Human" else "GRCm39"      # Reference kind and version
-# --------------------------------------------
-
-# Group files: absolute BAM paths, one per line
-GROUP_HEALTHY = OUTDIR / "groups" / "H.bams.txt"
-GROUP_SICK_1  = OUTDIR / "groups" / "N1.bams.txt"
-GROUP_SICK_2  = OUTDIR / "groups" / "N2.bams.txt"
-# Add more groups as needed
-
-# Comparisons to run: (name, group_a, group_b)
-COMPARISONS: list[Comparison] = [
-    Comparison("H_vs_N1", GROUP_HEALTHY, GROUP_SICK_1),
-    Comparison("H_vs_N2", GROUP_HEALTHY, GROUP_SICK_2),
-    Comparison("N1_vs_N2", GROUP_SICK_1, GROUP_SICK_2),
-    # add more as needed
-]
-
-# ---------------------------
-# GENCODE URLs (optional download)
-# ---------------------------
-
-# If you want auto-download to populate REF_BUNDLE_DIR when files are missing:
-# NOTE: Human vs Mouse use different FTP paths. Set this correctly for Mouse.
+# ----------------- GENCODE/URLs (defaults, can be overridden) -----------------
 if KIND == "Human":
-    # Human release_45 for v45
-    GENCODE_BASE_URL = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_45"
+    GENCODE_BASE_URL = os.environ.get("GENCODE_BASE_URL", "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_45")
 else:
-    # Mouse example (YOU MUST ADJUST to match your VERSION/release on disk)
-    # e.g. ".../Gencode_mouse/release_M31" if VERSION="vM31"
-    GENCODE_BASE_URL = "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M38"
+    GENCODE_BASE_URL = os.environ.get("GENCODE_BASE_URL", "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M38")
 
-#######################################
-# ------ END OF EDITING SECTION -------
-#######################################
+# Provide optional download URLs (used by helper scripts if needed)
+GENOME_URL = os.environ.get("GENOME_URL", "")
+ANNOTATION_URL = os.environ.get("ANNOTATION_URL", "")
+TRANSCRIPTS_URL = os.environ.get("TRANSCRIPTS_URL", "")
 
-# Derived reference locations
+# ----------------- Reference locations derived from roots -----------------
+REF_BUNDLE_DIR = Path(REFERENCES_ROOT) / KIND / f"Genecode_{VERSION}_rl{READ_LENGTH}"
+STAR_INDEX_DIR = Path(STAR_INDEX_ROOT) / KIND / f"Genecode_{VERSION}_rl{READ_LENGTH}"
+SALMON_INDEX_DIR = Path(SALMON_INDEX_ROOT) / KIND / f"Genecode_{VERSION}_rl{READ_LENGTH}"
 
-# Salmon transcripts URL
-GENOME_URL = f"{GENCODE_BASE_URL}/{GENOME_PRE_FIX}.primary_assembly.genome.fa.gz"
-ANNOTATION_URL = f"{GENCODE_BASE_URL}/gencode.{VERSION}.annotation.gtf.gz"
-TRANSCRIPTS_URL = f"{GENCODE_BASE_URL}/gencode.{VERSION}.transcripts.fa.gz"
-
-# Folder name pattern:
-#   <root>/<KIND>/Genecode_<VERSION>_rl<READ_LENGTH>/
-REF_BUNDLE_DIR = REFERENCES_ROOT / KIND / f"Genecode_{VERSION}_rl{READ_LENGTH}"
-
-# STAR index directory (built files)
-STAR_INDEX_DIR = STAR_INDEX_ROOT / KIND / f"Genecode_{VERSION}_rl{READ_LENGTH}"
-
-# Salmon index directory (built files)
-SALMON_INDEX_DIR = SALMON_INDEX_ROOT / KIND / f"Genecode_{VERSION}_rl{READ_LENGTH}"
-
-# Reference input files (stored under REFERENCES_ROOT, not inside indexes)
 GENOME_FASTA = REF_BUNDLE_DIR / f"{GENOME_PRE_FIX}.primary_assembly.genome.fa"
 ANNOTATION_GTF = REF_BUNDLE_DIR / f"gencode.{VERSION}.annotation.gtf"
 SALMON_TRANSCRIPTS_FASTA = REF_BUNDLE_DIR / f"gencode.{VERSION}.transcripts.fa"
 
-# FASTQ files are discovered automatically from FASTQ_DIR using suffixes above.
-SAMPLES = build_samples_from_fastq_dir(FASTQ_DIR, require_paired=True)
+# ----------------- Sample discovery -----------------
+def build_samples_from_fastq_dir(
+    fastq_dir: Path,
+    r1_suffix: str = R1_SUFFIX,
+    r2_suffix: str = R2_SUFFIX,
+    require_paired: bool = True,
+) -> List[dict]:
+    fastq_dir = Path(fastq_dir)
+    if not fastq_dir.exists() or not fastq_dir.is_dir():
+        raise SystemExit(f"ERROR: FASTQ_DIR does not exist or is not a directory: {fastq_dir}\n"
+                         f"Set env var FASTQ_DIR or update paths.py. Current OUTDIR={OUTDIR}")
+    samples = []
+    r1_files = sorted(fastq_dir.glob(f"*{r1_suffix}"))
+    if not r1_files:
+        raise SystemExit(f"ERROR: No R1 files found in {fastq_dir} matching pattern '*{r1_suffix}'.")
+    for r1 in r1_files:
+        sample_id = r1.name[:-len(r1_suffix)]
+        r2 = fastq_dir / f"{sample_id}{r2_suffix}"
+        if require_paired:
+            if not r2.exists():
+                # skip incomplete pairs but warn
+                continue
+            samples.append({"id": sample_id, "r1": r1.resolve(), "r2": r2.resolve()})
+        else:
+            entry = {"id": sample_id, "r1": r1.resolve()}
+            if r2.exists():
+                entry["r2"] = r2.resolve()
+            samples.append(entry)
+    if require_paired and not samples:
+        raise SystemExit(f"ERROR: Found R1 files but no complete R1/R2 pairs using "
+                         f"r1='{r1_suffix}', r2='{r2_suffix}' in {fastq_dir}.")
+    samples.sort(key=lambda d: str(d["id"]))  # type: ignore[arg-type]
+    return samples
 
-#######################################
-# -------=-- OTHER SETTINGS -----------
-#######################################
+# Build SAMPLES now (will exit early if FASTQ_DIR is missing or empty)
+SAMPLES = build_samples_from_fastq_dir(FASTQ_DIR)
 
-# Compute
-THREADS = 16
+# ----------------- Computation defaults and thresholds -----------------
+THREADS = int(os.environ.get("THREADS", "16"))
+DO_QC = os.environ.get("DO_QC", "False").lower() in ("1", "true", "yes")
+DO_TRIM = os.environ.get("DO_TRIM", "False").lower() in ("1", "true", "yes")
 
-# Optional steps
-DO_QC = False       # FastQC + MultiQC
-DO_TRIM = False    # fastp
+SALMON_LIBTYPE = os.environ.get("SALMON_LIBTYPE", "A")
+SALMON_EXTRA_ARGS = os.environ.get("SALMON_EXTRA_ARGS", "")
+SALMON_TPM_THRESHOLD = float(os.environ.get("SALMON_TPM_THRESHOLD", "5.0"))
+SALMON_FILTER_MODE = os.environ.get("SALMON_FILTER_MODE", "either")  # "either" or "both"
 
-# featureCounts strandedness: 0=unstranded, 1=stranded, 2=reverse
-FEATURECOUNTS_STRANDED = 0
+PSISIGMA_ABSPSI_MIN = float(os.environ.get("PSISIGMA_ABSPSI_MIN", "20.0"))
+PSISIGMA_P_MAX = float(os.environ.get("PSISIGMA_P_MAX", "0.05"))
+PSISIGMA_FDR_MAX = float(os.environ.get("PSISIGMA_FDR_MAX", "0.05"))
 
-# Extra STAR args if you want
-STAR_EXTRA_ARGS = ["--twopassMode", "Basic"] # add more as needed
+# Default group file paths (these will be created by step3)
+GROUP_HEALTHY = OUTDIR / "groups" / "H.bams.txt"
+GROUP_SICK_1 = OUTDIR / "groups" / "N1.bams.txt"
+GROUP_SICK_2 = OUTDIR / "groups" / "N2.bams.txt"
 
-# Salmon filtering options
-SALMON_EXTRA_ARGS = ""
-SALMON_LIBTYPE = "A"
-SALMON_TPM_THRESHOLD = 5.0   # mean TPM cutoff
-SALMON_FILTER_MODE = "either"  # "either" or "both"
-
-PSISIGMA_ABSPSI_MIN: float = 20.0
-PSISIGMA_P_MAX: float = 0.05
-PSISIGMA_FDR_MAX: float = 0.05
-
+COMPARISONS = [
+    Comparison("H_vs_N1", GROUP_HEALTHY, GROUP_SICK_1),
+    Comparison("H_vs_N2", GROUP_HEALTHY, GROUP_SICK_2),
+    Comparison("N1_vs_N2", GROUP_SICK_1, GROUP_SICK_2),
+]

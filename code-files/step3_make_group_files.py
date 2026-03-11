@@ -42,7 +42,7 @@ from __future__ import annotations
 from pathlib import Path
 import argparse
 import sys
-from paths import (OUTDIR)
+from paths import OUTDIR
 
 def bam_path(out_dir: Path, sample: str) -> Path:
     """

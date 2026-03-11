@@ -104,7 +104,6 @@ if __name__ == "__main__":
         if len(psisigma_files) > 1:
             print(f"  Warning: Multiple PSI-Sigma files found, using: {psisigma_files[0].name}")
         
-        ##################### NEED TO FIX THIS ######################
         psisigma_file = max(psisigma_files, key=lambda p: p.stat().st_mtime)
         print(f"  Reading: {psisigma_file.name}")
         
