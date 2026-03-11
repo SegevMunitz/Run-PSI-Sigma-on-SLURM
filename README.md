@@ -149,17 +149,18 @@ R2_SUFFIX = "_2.fastq.gz"
 
 ### Example (trimmed)
 ```python
-NAME = "run_1"
+NAME = os.environ.get("RUN_NAME", os.environ.get("NAME", "run_1"))
 OUTDIR = Path("/path/to/output") / NAME
-FASTQ_DIR = OUTDIR / "gz_files"
+FASTQ_DIR = Path(os.environ.get("FASTQ_DIR", str(OUTDIR / "gz_files")))
 
-KIND = "Mouse"
-VERSION = "M38"
-READ_LENGTH = 100
+KIND = os.environ.get("KIND", "Mouse")        # "Human" or "Mouse"
+VERSION = os.environ.get("VERSION", "M38")    # e.g. "M38" or "v45"
+READ_LENGTH = int(os.environ.get("READ_LENGTH", "100"))
 
-GROUP_HEALTHY = OUTDIR / "groups" / "H.bams.txt"
-GROUP_SICK_1  = OUTDIR / "groups" / "N1.bams.txt"
-GROUP_SICK_2  = OUTDIR / "groups" / "N2.bams.txt"
+GROUP_DIR = OUTDIR / "star_out" / "groups"
+GROUP_HEALTHY = GROUP_DIR / "H.bams.txt"
+GROUP_SICK_1 = GROUP_DIR / "N1.bams.txt"
+GROUP_SICK_2 = GROUP_DIR / "N2.bams.txt"
 
 COMPARISONS = [
     Comparison("H_vs_N1", GROUP_HEALTHY, GROUP_SICK_1),
